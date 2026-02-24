@@ -1,8 +1,26 @@
-import { registerRootComponent } from 'expo';
+import "react-native-url-polyfill/auto";
+import React from "react";
+import { registerRootComponent } from "expo";
+import { ConvexReactClient } from "convex/react";
+import { ConvexAuthProvider } from "@convex-dev/auth/react";
+import { Platform } from "react-native";
+import App from "./App";
+import { secureTokenStorage } from "./src/secureStore";
 
-import App from './App';
+const convexUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
+if (!convexUrl) {
+  throw new Error("EXPO_PUBLIC_CONVEX_URL is not set. Add it to mobile/.env");
+}
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+const convex = new ConvexReactClient(convexUrl);
+
+function Root() {
+  const storage = Platform.OS === "web" ? undefined : secureTokenStorage;
+  return (
+    <ConvexAuthProvider client={convex} storage={storage}>
+      <App />
+    </ConvexAuthProvider>
+  );
+}
+
+registerRootComponent(Root);
