@@ -16,14 +16,21 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.graminfo.main",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.sahithi7.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "05bbced2-129b-45bb-8fc7-39b8bd7cd91f"
+      }
     }
   }
 }

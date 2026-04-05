@@ -117,6 +117,8 @@ export const list = query({
       if ((h.rationCardNumber || "").toLowerCase().includes(q)) return true;
       if ((h.voterIdNumber || "").toLowerCase().includes(q)) return true;
       if (h.members.some((m) => (m.name || "").toLowerCase().includes(q))) return true;
+      if (h.members.some((m) => (m.mobileNumber || "").toLowerCase().includes(q))) return true;
+      if (h.members.some((m) => (m.aadhaarNumber || "").toLowerCase().includes(q))) return true;
       if (h.schemes.some((s) => (s.schemeName || "").toLowerCase().includes(q))) return true;
       return false;
     });
@@ -236,13 +238,43 @@ export const remove = mutation({
   },
 });
 
+export const clearAll = mutation({
+  args: {
+    confirm: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.confirm !== "DELETE_ALL_HOUSEHOLD_DATA") {
+      throw new Error("Confirmation text mismatch");
+    }
+
+    const households = await ctx.db.query("households").collect();
+    const members = await ctx.db.query("members").collect();
+    const schemes = await ctx.db.query("schemes").collect();
+
+    for (const s of schemes) await ctx.db.delete(s._id);
+    for (const m of members) await ctx.db.delete(m._id);
+    for (const h of households) await ctx.db.delete(h._id);
+
+    return {
+      deletedHouseholds: households.length,
+      deletedMembers: members.length,
+      deletedSchemes: schemes.length,
+    };
+  },
+});
+
 export const addMember = mutation({
   args: {
     householdId: v.id("households"),
     name: v.string(),
     relation: v.optional(v.string()),
     age: v.optional(v.number()),
+    dob: v.optional(v.string()),
     gender: v.optional(genderValue),
+    aadhaarNumber: v.optional(v.string()),
+    mobileNumber: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
+    disabilityStatus: v.optional(v.string()),
     occupation: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -257,7 +289,12 @@ export const addMember = mutation({
       name: args.name,
       relation: args.relation,
       age: args.age,
+      dob: args.dob,
       gender: args.gender,
+      aadhaarNumber: args.aadhaarNumber,
+      mobileNumber: args.mobileNumber,
+      maritalStatus: args.maritalStatus,
+      disabilityStatus: args.disabilityStatus,
       occupation: args.occupation,
       createdAt: Date.now(),
     });
@@ -271,7 +308,12 @@ export const updateMember = mutation({
     name: v.string(),
     relation: v.optional(v.string()),
     age: v.optional(v.number()),
+    dob: v.optional(v.string()),
     gender: v.optional(genderValue),
+    aadhaarNumber: v.optional(v.string()),
+    mobileNumber: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
+    disabilityStatus: v.optional(v.string()),
     occupation: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
@@ -287,7 +329,12 @@ export const updateMember = mutation({
       name: args.name,
       relation: args.relation,
       age: args.age,
+      dob: args.dob,
       gender: args.gender,
+      aadhaarNumber: args.aadhaarNumber,
+      mobileNumber: args.mobileNumber,
+      maritalStatus: args.maritalStatus,
+      disabilityStatus: args.disabilityStatus,
       occupation: args.occupation,
     });
     await ctx.db.patch(existing.householdId, { updatedAt: Date.now() });
@@ -381,7 +428,12 @@ export const importCsvRows = mutation({
               name: v.string(),
               relation: v.optional(v.string()),
               age: v.optional(v.number()),
+              dob: v.optional(v.string()),
               gender: v.optional(genderValue),
+              aadhaarNumber: v.optional(v.string()),
+              mobileNumber: v.optional(v.string()),
+              maritalStatus: v.optional(v.string()),
+              disabilityStatus: v.optional(v.string()),
               occupation: v.optional(v.string()),
             })
           )
@@ -426,7 +478,12 @@ export const importCsvRows = mutation({
           name: m.name,
           relation: m.relation,
           age: m.age,
+          dob: m.dob,
           gender: m.gender,
+          aadhaarNumber: m.aadhaarNumber,
+          mobileNumber: m.mobileNumber,
+          maritalStatus: m.maritalStatus,
+          disabilityStatus: m.disabilityStatus,
           occupation: m.occupation,
           createdAt: now,
         });

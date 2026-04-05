@@ -129,13 +129,23 @@ export default function MainAppScreen() {
   const [memberName, setMemberName] = useState("");
   const [memberRelation, setMemberRelation] = useState("");
   const [memberAge, setMemberAge] = useState("");
+  const [memberDob, setMemberDob] = useState("");
   const [memberGender, setMemberGender] = useState("");
+  const [memberAadhaar, setMemberAadhaar] = useState("");
+  const [memberMobile, setMemberMobile] = useState("");
+  const [memberMaritalStatus, setMemberMaritalStatus] = useState("");
+  const [memberDisabilityStatus, setMemberDisabilityStatus] = useState("");
   const [memberOccupation, setMemberOccupation] = useState("");
   const [editingMemberId, setEditingMemberId] = useState(null);
   const [editMemberName, setEditMemberName] = useState("");
   const [editMemberRelation, setEditMemberRelation] = useState("");
   const [editMemberAge, setEditMemberAge] = useState("");
+  const [editMemberDob, setEditMemberDob] = useState("");
   const [editMemberGender, setEditMemberGender] = useState("");
+  const [editMemberAadhaar, setEditMemberAadhaar] = useState("");
+  const [editMemberMobile, setEditMemberMobile] = useState("");
+  const [editMemberMaritalStatus, setEditMemberMaritalStatus] = useState("");
+  const [editMemberDisabilityStatus, setEditMemberDisabilityStatus] = useState("");
   const [editMemberOccupation, setEditMemberOccupation] = useState("");
 
   const [schemeName, setSchemeName] = useState("");
@@ -265,14 +275,24 @@ export default function MainAppScreen() {
       name: memberName.trim(),
       relation: memberRelation.trim() || undefined,
       age: memberAge ? Number(memberAge) : undefined,
+      dob: memberDob.trim() || undefined,
       gender: normalizeGender(memberGender) || undefined,
+      aadhaarNumber: memberAadhaar.trim() || undefined,
+      mobileNumber: memberMobile.trim() || undefined,
+      maritalStatus: memberMaritalStatus.trim() || undefined,
+      disabilityStatus: memberDisabilityStatus.trim() || undefined,
       occupation: memberOccupation.trim() || undefined,
     });
 
     setMemberName("");
     setMemberRelation("");
     setMemberAge("");
+    setMemberDob("");
     setMemberGender("");
+    setMemberAadhaar("");
+    setMemberMobile("");
+    setMemberMaritalStatus("");
+    setMemberDisabilityStatus("");
     setMemberOccupation("");
   };
 
@@ -281,7 +301,12 @@ export default function MainAppScreen() {
     setEditMemberName(m.name || "");
     setEditMemberRelation(m.relation || "");
     setEditMemberAge(m.age ? String(m.age) : "");
+    setEditMemberDob(m.dob || "");
     setEditMemberGender(normalizeGender(m.gender));
+    setEditMemberAadhaar(m.aadhaarNumber || "");
+    setEditMemberMobile(m.mobileNumber || "");
+    setEditMemberMaritalStatus(m.maritalStatus || "");
+    setEditMemberDisabilityStatus(m.disabilityStatus || "");
     setEditMemberOccupation(m.occupation || "");
   };
 
@@ -296,7 +321,12 @@ export default function MainAppScreen() {
         name: editMemberName.trim(),
         relation: editMemberRelation.trim() || undefined,
         age: editMemberAge ? Number(editMemberAge) : undefined,
+        dob: editMemberDob.trim() || undefined,
         gender: normalizeGender(editMemberGender) || undefined,
+        aadhaarNumber: editMemberAadhaar.trim() || undefined,
+        mobileNumber: editMemberMobile.trim() || undefined,
+        maritalStatus: editMemberMaritalStatus.trim() || undefined,
+        disabilityStatus: editMemberDisabilityStatus.trim() || undefined,
         occupation: editMemberOccupation.trim() || undefined,
       });
       setEditingMemberId(null);
@@ -636,7 +666,12 @@ export default function MainAppScreen() {
                   name: m.name || "",
                   relation: m.relation || undefined,
                   age: Number.isFinite(Number(m.age)) ? Number(m.age) : undefined,
+                  dob: m.dob || undefined,
                   gender: normalizeGender(m.gender) || undefined,
+                  aadhaarNumber: m.aadhaarNumber || m.member_aadhaar || undefined,
+                  mobileNumber: m.mobileNumber || m.member_mobile || undefined,
+                  maritalStatus: m.maritalStatus || m.marital_status || undefined,
+                  disabilityStatus: m.disabilityStatus || m.disability_status || undefined,
                   occupation: m.occupation || undefined,
                 }))
               : [];
@@ -685,7 +720,12 @@ export default function MainAppScreen() {
           name: m.name,
           relation: m.relation || "",
           age: m.age ?? "",
+          dob: m.dob || "",
           gender: m.gender || "",
+          aadhaarNumber: m.aadhaarNumber || "",
+          mobileNumber: m.mobileNumber || "",
+          maritalStatus: m.maritalStatus || "",
+          disabilityStatus: m.disabilityStatus || "",
           occupation: m.occupation || "",
         }))
       ),
@@ -959,18 +999,23 @@ export default function MainAppScreen() {
               <View style={styles.inlineCard} key={m._id}>
                 {editingMemberId === m._id ? (
                   <View style={{ flex: 1, gap: 6 }}>
-                    <TextInput style={styles.input} placeholder="Member Name" value={editMemberName} onChangeText={setEditMemberName} />
-                    <TextInput style={styles.input} placeholder="Relation" value={editMemberRelation} onChangeText={setEditMemberRelation} />
-                    <TextInput style={styles.input} placeholder="Age" keyboardType="numeric" value={editMemberAge} onChangeText={setEditMemberAge} />
-                    <Text style={styles.helperText}>Gender</Text>
-                    <View style={styles.statusRow}>
-                      {GENDER_OPTIONS.map((opt) => (
-                        <Pressable key={opt} onPress={() => setEditMemberGender(opt)} style={[styles.statusPill, editMemberGender === opt && styles.statusPillActive]}>
-                          <Text style={[styles.statusPillText, editMemberGender === opt && styles.statusPillTextActive]}>{opt}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                    <TextInput style={styles.input} placeholder="Occupation" value={editMemberOccupation} onChangeText={setEditMemberOccupation} />
+                <TextInput style={styles.input} placeholder="Member Name" value={editMemberName} onChangeText={setEditMemberName} />
+                <TextInput style={styles.input} placeholder="Relation" value={editMemberRelation} onChangeText={setEditMemberRelation} />
+                <TextInput style={styles.input} placeholder="Age" keyboardType="numeric" value={editMemberAge} onChangeText={setEditMemberAge} />
+                <TextInput style={styles.input} placeholder="Date of Birth (YYYY-MM-DD)" value={editMemberDob} onChangeText={setEditMemberDob} />
+                <Text style={styles.helperText}>Gender</Text>
+                <View style={styles.statusRow}>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <Pressable key={opt} onPress={() => setEditMemberGender(opt)} style={[styles.statusPill, editMemberGender === opt && styles.statusPillActive]}>
+                      <Text style={[styles.statusPillText, editMemberGender === opt && styles.statusPillTextActive]}>{opt}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <TextInput style={styles.input} placeholder="Member Aadhaar Number" keyboardType="number-pad" value={editMemberAadhaar} onChangeText={setEditMemberAadhaar} />
+                <TextInput style={styles.input} placeholder="Member Mobile Number" keyboardType="phone-pad" value={editMemberMobile} onChangeText={setEditMemberMobile} />
+                <TextInput style={styles.input} placeholder="Marital Status" value={editMemberMaritalStatus} onChangeText={setEditMemberMaritalStatus} />
+                <TextInput style={styles.input} placeholder="Disability Status" value={editMemberDisabilityStatus} onChangeText={setEditMemberDisabilityStatus} />
+                <TextInput style={styles.input} placeholder="Occupation" value={editMemberOccupation} onChangeText={setEditMemberOccupation} />
                     <View style={styles.rowWrap}>
                       <PrimaryButton title="Save Member" onPress={onUpdateMember} />
                       <OutlineButton title="Cancel" onPress={() => setEditingMemberId(null)} />
@@ -983,6 +1028,11 @@ export default function MainAppScreen() {
                       <Text style={styles.houseMeta}>
                         {m.relation || "-"} | Age: {m.age || "-"} | {m.gender || "-"}
                       </Text>
+                      <Text style={styles.houseMeta}>DOB: {m.dob || "-"}</Text>
+                      <Text style={styles.houseMeta}>Aadhaar: {m.aadhaarNumber || "-"}</Text>
+                      <Text style={styles.houseMeta}>Member Mobile: {m.mobileNumber || "-"}</Text>
+                      <Text style={styles.houseMeta}>Marital Status: {m.maritalStatus || "-"}</Text>
+                      <Text style={styles.houseMeta}>Disability Status: {m.disabilityStatus || "-"}</Text>
                       <Text style={styles.houseMeta}>Occupation: {m.occupation || "-"}</Text>
                     </View>
                     <View style={{ gap: 8 }}>
@@ -996,6 +1046,7 @@ export default function MainAppScreen() {
             <TextInput style={styles.input} placeholder="Member Name" value={memberName} onChangeText={setMemberName} />
             <TextInput style={styles.input} placeholder="Relation" value={memberRelation} onChangeText={setMemberRelation} />
             <TextInput style={styles.input} placeholder="Age" keyboardType="numeric" value={memberAge} onChangeText={setMemberAge} />
+            <TextInput style={styles.input} placeholder="Date of Birth (YYYY-MM-DD)" value={memberDob} onChangeText={setMemberDob} />
             <Text style={styles.helperText}>Gender</Text>
             <View style={styles.statusRow}>
               {GENDER_OPTIONS.map((opt) => (
@@ -1004,6 +1055,10 @@ export default function MainAppScreen() {
                 </Pressable>
               ))}
             </View>
+            <TextInput style={styles.input} placeholder="Member Aadhaar Number" keyboardType="number-pad" value={memberAadhaar} onChangeText={setMemberAadhaar} />
+            <TextInput style={styles.input} placeholder="Member Mobile Number" keyboardType="phone-pad" value={memberMobile} onChangeText={setMemberMobile} />
+            <TextInput style={styles.input} placeholder="Marital Status (Single/Married/Widowed/Divorced)" value={memberMaritalStatus} onChangeText={setMemberMaritalStatus} />
+            <TextInput style={styles.input} placeholder="Disability Status (None/Yes - details)" value={memberDisabilityStatus} onChangeText={setMemberDisabilityStatus} />
             <TextInput style={styles.input} placeholder="Occupation" value={memberOccupation} onChangeText={setMemberOccupation} />
             <PrimaryButton title="Add Member" onPress={onAddMember} />
           </Card>
