@@ -73,8 +73,6 @@ export default function MainAppScreen() {
   const qrSvgRef = useRef(null);
 
   const [permission, requestPermission] = useCameraPermissions();
-  const env = globalThis?.process?.env || {};
-  const qrBaseUrl = env.EXPO_PUBLIC_CONVEX_SITE_URL || env.EXPO_PUBLIC_CONVEX_URL || "";
 
   const normalizeGender = (value) => {
     const v = (value || "").trim().toLowerCase();
@@ -170,6 +168,7 @@ export default function MainAppScreen() {
   const updateScheme = useMutation("households:updateScheme");
   const removeScheme = useMutation("households:removeScheme");
   const importCsvRows = useMutation("households:importCsvRows");
+  const markHeadDeceasedAndPromoteEldest = useMutation("households:markHeadDeceasedAndPromoteEldest");
 
   const selectedHouse = useMemo(() => households.find((h) => h._id === selectedId) || null, [households, selectedId]);
 
@@ -540,6 +539,33 @@ export default function MainAppScreen() {
     }
   };
 
+  const onMarkHeadDeceased = async () => {
+    if (!selectedHouse) return;
+    const confirmed =
+      Platform.OS === "web"
+        ? window.confirm("Mark current head as deceased and promote eldest living member as new head?")
+        : await new Promise((resolve) =>
+            Alert.alert("Promote Eldest", "Mark current head as deceased and promote eldest living member as new head?", [
+              { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+              { text: "Continue", onPress: () => resolve(true) },
+            ])
+          );
+    if (!confirmed) return;
+
+    try {
+      const result = await markHeadDeceasedAndPromoteEldest({
+        householdId: selectedHouse._id,
+      });
+      if (result?.promoted) {
+        Alert.alert("Head Updated", `${result.previousHead} -> ${result.newHeadName}`);
+      } else {
+        Alert.alert("No Eligible Member", "No living member available to promote. Household is marked as head pending.");
+      }
+    } catch (err) {
+      Alert.alert("Update failed", err?.message || "Could not promote eldest member.");
+    }
+  };
+
   const downloadOnWeb = (content, fileName, mimeType) => {
     if (Platform.OS !== "web") return false;
     const blob = new Blob([content], { type: mimeType });
@@ -859,11 +885,7 @@ export default function MainAppScreen() {
   };
 
   const getQrValue = (household) => {
-    const code = encodeURIComponent(household?.houseCode || "");
-    if (qrBaseUrl) {
-      return `${qrBaseUrl.replace(/\/$/, "")}/household?code=${code}`;
-    }
-    return household?.houseCode || "";
+    return `GRAMINFO|houseCode=${household?.houseCode || ""}`;
   };
 
   const renderDashboard = () => (
@@ -955,6 +977,7 @@ export default function MainAppScreen() {
             <Text style={styles.houseMeta}>Secondary Mobile: {selectedHouse.secondaryMobile || "-"}</Text>
             <Text style={styles.houseMeta}>Ration Card: {selectedHouse.rationCardNumber || "-"}</Text>
             <Text style={styles.houseMeta}>Voter ID: {selectedHouse.voterIdNumber || "-"}</Text>
+            {selectedHouse.headPending ? <Text style={styles.warnText}>Head of household pending assignment.</Text> : null}
             <Text style={styles.helperText}>Update Household Details</Text>
             {isEditingHousehold ? (
               <>
@@ -977,6 +1000,7 @@ export default function MainAppScreen() {
                 <OutlineButton title="Edit Household" onPress={() => setIsEditingHousehold(true)} />
               )}
               <OutlineButton title="Open QR Center" onPress={() => setActiveTab("qr")} />
+              <OutlineButton title="Head Deceased -> Promote Eldest" onPress={onMarkHeadDeceased} />
               <PrimaryButton
                 title="Delete Household"
                 danger
@@ -1145,7 +1169,7 @@ export default function MainAppScreen() {
         autoCapitalize="characters"
       />
       <PrimaryButton title="Find Household by Code" onPress={onFindByCode} />
-      <Text style={styles.helperText}>Tip: search is case-insensitive; spaces are ignored.</Text>
+      <Text style={styles.helperText}>Tip: QR holds only a protected house code. Full data opens only after in-app login.</Text>
 
       {selectedHouse ? (
         <>
@@ -1221,7 +1245,7 @@ export default function MainAppScreen() {
             <OutlineButton title="Close" onPress={() => setShowScanner(false)} />
           </View>
           <View style={styles.scannerHintWrap}>
-            <Text style={styles.helperText}>Point camera to QR. Works on mobile and laptop web after camera permission is granted.</Text>
+            <Text style={styles.helperText}>Point camera to QR. Household details are visible only for authenticated users in this app.</Text>
           </View>
           <CameraView style={{ flex: 1 }} barcodeScannerSettings={{ barcodeTypes: ["qr"] }} onBarcodeScanned={onScan} />
         </SafeAreaView>
@@ -1284,6 +1308,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { fontSize: 18, fontWeight: "800", color: "#0f172a" },
   helperText: { color: "#475569" },
+  warnText: { color: "#b45309", fontWeight: "700" },
   input: {
     backgroundColor: "#f8fafc",
     borderWidth: 1,

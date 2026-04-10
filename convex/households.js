@@ -18,6 +18,24 @@ function normalizeName(name) {
   return (name || "").trim().toLowerCase();
 }
 
+function parseDobToTimestamp(dob) {
+  if (!dob || typeof dob !== "string") return Number.POSITIVE_INFINITY;
+  const parsed = Date.parse(`${dob}T00:00:00Z`);
+  return Number.isNaN(parsed) ? Number.POSITIVE_INFINITY : parsed;
+}
+
+function sortByEldest(a, b) {
+  const aDob = parseDobToTimestamp(a.dob);
+  const bDob = parseDobToTimestamp(b.dob);
+  if (aDob !== bDob) return aDob - bDob;
+
+  const aAge = typeof a.age === "number" ? a.age : -1;
+  const bAge = typeof b.age === "number" ? b.age : -1;
+  if (aAge !== bAge) return bAge - aAge;
+
+  return (a.createdAt || 0) - (b.createdAt || 0);
+}
+
 function normalizeForMatch(text) {
   return (text || "").toUpperCase().replace(/\s+/g, "");
 }
@@ -179,6 +197,7 @@ export const create = mutation({
       houseCode,
       address: args.address,
       headName: args.headName,
+      headPending: false,
       phone: args.phone,
       aadhaarNumber: args.aadhaarNumber,
       secondaryMobile: args.secondaryMobile,
@@ -208,9 +227,12 @@ export const update = mutation({
     await ensureAuth(ctx);
     const existing = await ctx.db.get(args.householdId);
     if (!existing) throw new Error("Household not found");
+    const headNameChanged = normalizeName(existing.headName) !== normalizeName(args.headName);
     await ctx.db.patch(args.householdId, {
       address: args.address,
       headName: args.headName,
+      headMemberId: headNameChanged ? undefined : existing.headMemberId,
+      headPending: false,
       phone: args.phone,
       aadhaarNumber: args.aadhaarNumber,
       secondaryMobile: args.secondaryMobile,
@@ -276,6 +298,8 @@ export const addMember = mutation({
     maritalStatus: v.optional(v.string()),
     disabilityStatus: v.optional(v.string()),
     occupation: v.optional(v.string()),
+    isDeceased: v.optional(v.boolean()),
+    dateOfDeath: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await ensureAuth(ctx);
@@ -296,6 +320,8 @@ export const addMember = mutation({
       maritalStatus: args.maritalStatus,
       disabilityStatus: args.disabilityStatus,
       occupation: args.occupation,
+      isDeceased: args.isDeceased,
+      dateOfDeath: args.dateOfDeath,
       createdAt: Date.now(),
     });
     await ctx.db.patch(args.householdId, { updatedAt: Date.now() });
@@ -315,6 +341,8 @@ export const updateMember = mutation({
     maritalStatus: v.optional(v.string()),
     disabilityStatus: v.optional(v.string()),
     occupation: v.optional(v.string()),
+    isDeceased: v.optional(v.boolean()),
+    dateOfDeath: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await ensureAuth(ctx);
@@ -336,6 +364,8 @@ export const updateMember = mutation({
       maritalStatus: args.maritalStatus,
       disabilityStatus: args.disabilityStatus,
       occupation: args.occupation,
+      isDeceased: args.isDeceased,
+      dateOfDeath: args.dateOfDeath,
     });
     await ctx.db.patch(existing.householdId, { updatedAt: Date.now() });
     return { ok: true };
@@ -350,6 +380,62 @@ export const removeMember = mutation({
     if (!m) return;
     await ctx.db.delete(args.memberId);
     await ctx.db.patch(m.householdId, { updatedAt: Date.now() });
+  },
+});
+
+export const markHeadDeceasedAndPromoteEldest = mutation({
+  args: {
+    householdId: v.id("households"),
+    dateOfDeath: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ensureAuth(ctx);
+    const household = await ctx.db.get(args.householdId);
+    if (!household) throw new Error("Household not found");
+
+    const now = Date.now();
+    const members = await ctx.db.query("members").withIndex("by_household", (q) => q.eq("householdId", args.householdId)).collect();
+    const oldHeadName = household.headName || "";
+
+    const matchingExistingHead = members.find((m) => normalizeName(m.name) === normalizeName(oldHeadName));
+    if (matchingExistingHead) {
+      await ctx.db.patch(matchingExistingHead._id, {
+        isDeceased: true,
+        dateOfDeath: args.dateOfDeath || matchingExistingHead.dateOfDeath,
+      });
+    }
+
+    const eligible = members
+      .filter((m) => !m.isDeceased)
+      .filter((m) => normalizeName(m.name) !== normalizeName(oldHeadName))
+      .sort(sortByEldest);
+
+    if (eligible.length === 0) {
+      await ctx.db.patch(args.householdId, {
+        headPending: true,
+        headMemberId: undefined,
+        updatedAt: now,
+      });
+      return {
+        promoted: false,
+        previousHead: oldHeadName,
+      };
+    }
+
+    const promoted = eligible[0];
+    await ctx.db.patch(args.householdId, {
+      headName: promoted.name,
+      headMemberId: promoted._id,
+      headPending: false,
+      updatedAt: now,
+    });
+
+    return {
+      promoted: true,
+      previousHead: oldHeadName,
+      newHeadName: promoted.name,
+      newHeadMemberId: promoted._id,
+    };
   },
 });
 
@@ -435,6 +521,8 @@ export const importCsvRows = mutation({
               maritalStatus: v.optional(v.string()),
               disabilityStatus: v.optional(v.string()),
               occupation: v.optional(v.string()),
+              isDeceased: v.optional(v.boolean()),
+              dateOfDeath: v.optional(v.string()),
             })
           )
         ),
@@ -470,6 +558,7 @@ export const importCsvRows = mutation({
         createdBy: userId,
         createdAt: now,
         updatedAt: now,
+        headPending: false,
       });
       for (const m of row.members || []) {
         if (normalizeName(m.name) === normalizeName(row.headName)) continue;
@@ -485,6 +574,8 @@ export const importCsvRows = mutation({
           maritalStatus: m.maritalStatus,
           disabilityStatus: m.disabilityStatus,
           occupation: m.occupation,
+          isDeceased: m.isDeceased,
+          dateOfDeath: m.dateOfDeath,
           createdAt: now,
         });
       }
